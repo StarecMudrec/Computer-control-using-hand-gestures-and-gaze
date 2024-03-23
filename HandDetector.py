@@ -1,6 +1,8 @@
 import cv2
 import mediapipe as mp
+import torch
 import time
+from l2cs import Pipeline, render
 import math
 import pyautogui as pag
 import numpy as np
@@ -121,6 +123,20 @@ hands_size = 3 #размер руки (3 - норма)
 
 sensetivity = 4 #чувствительмость курсора (чем выше тем меньше надо двигать рукой. 2 - норма)
 
+
+if torch.cuda.is_available():
+    gaze_pipeline = Pipeline(
+        weights = 'models\L2CSNet_gaze360.pkl',
+        arch = 'ResNet50',
+        device = torch.device('cuda') # or 'gpu'
+    )
+else:
+    gaze_pipeline = Pipeline(
+        weights = 'models\L2CSNet_gaze360.pkl',
+        arch = 'ResNet50',
+        device = torch.device('cpu') # or 'gpu'
+    )
+	
 '''while True :
     _, img = cap.read()
     

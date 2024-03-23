@@ -3,7 +3,9 @@ import sys
 import os
 import HandDetector as HD
 import pyautogui as pag
-from HandDetector import hands_size, width, height, sensetivity, cap, gesture_data, gesture_binds, gesture_icons, gesture_activated
+from l2cs import Pipeline, render
+import torch
+from HandDetector import hands_size, width, height, sensetivity, cap, gesture_data, gesture_binds, gesture_icons, gesture_activated, gaze_pipeline
 from PyQt5.QtWidgets import  QWidget, QLabel, QApplication, QPushButton, QDesktopWidget, QComboBox
 from PyQt5.QtCore import QObject, QThread, Qt, pyqtSignal, pyqtSlot, QSize
 from PyQt5.QtGui import QImage, QPixmap, QIcon
@@ -16,6 +18,8 @@ swiped = False
 swipe_left = False
 swipe_right = False
 index_f_lm = (0, 0)
+
+hands_cursor = False
 
 class Thread(QThread):
     changePixmap = pyqtSignal(QImage)
@@ -53,6 +57,21 @@ class Thread(QThread):
                             print("right")
                         else :
                             print("left")'''
+                
+                results = gaze_pipeline.step(img)
+                img, eye_x, eye_y, h_, w_ = render(img, results)
+
+                eye_x -= w_/2
+                eye_y -= h_/2
+
+                e_x = width - (width/2 + eye_x * width / w_*4)
+                e_y = eye_y * height / h_*4
+
+                print(e_x)
+
+                if not hands_cursor :
+                    if 0 < e_x < width and 0 < e_y < height :
+                        HD.pag.moveTo(e_x, e_y)
 
                 if lmList != [] :
                     fingers = HD.detector.fingersUp()
@@ -142,24 +161,25 @@ class Thread(QThread):
 
                     dx = lmList[9][1] - w/2
                     dy = lmList[9][2] - h/2
+                    
                     mouse_x = width - (width/2 + dx * width / w * sensetivity)
                     mouse_y = height/2 + dy * height / h * sensetivity
 
-                    if 0 < mouse_x < width and 0 < mouse_y < height :
+                    if hands_cursor and 0 < mouse_x < width and 0 < mouse_y < height :
                         if gesture_data["LKM_hold"] == True and gesture_data["LKM_press"] != True :
                             HD.pag.mouseDown(mouse_x, mouse_y, button='left')
-                            #HD.pag.moveTo(mouse_x, mouse_y)
+                            HD.pag.moveTo(mouse_x, mouse_y)
                         else :
                             HD.pag.mouseUp(mouse_x, mouse_y, button='left')
-                            #HD.pag.moveTo(mouse_x, mouse_y)
+                            HD.pag.moveTo(mouse_x, mouse_y)
                         if gesture_data["LKM_press"] == True and not gesture_activated["LKM_press"] :
                             HD.pag.click(mouse_x, mouse_y, 1, button='left')
                             gesture_activated["LKM_press"] = True
                         elif not gesture_data["LKM_press"] :
                             gesture_activated["LKM_press"] = False
-                            #HD.pag.moveTo(mouse_x, mouse_y)
-                        #else :
-                            #HD.pag.moveTo(mouse_x, mouse_y)
+                            HD.pag.moveTo(mouse_x, mouse_y)
+                        else :
+                            HD.pag.moveTo(mouse_x, mouse_y)
                     if gesture_data["Media_pause"] == True :
                         pag.press("playpause")
                     if gesture_data["Media_next"] == True :
@@ -173,7 +193,7 @@ class Thread(QThread):
                         gesture_data["Ctrl+S"] = False
                         #print("ctrl+s")
                     if gesture_data["Prtscr"] == True :
-                        pag.press("printscreen")
+                        pag.hotkey('win', 'shift', 's')
                         #pag.hotkey('ctrl', 's', interval= 0.5)
                         #print("prtscr")
 
