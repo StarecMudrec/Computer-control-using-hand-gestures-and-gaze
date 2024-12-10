@@ -19,7 +19,7 @@ swipe_left = False
 swipe_right = False
 index_f_lm = (0, 0)
 
-hands_cursor = False
+hands_cursor = True
 
 class Thread(QThread):
     changePixmap = pyqtSignal(QImage)
@@ -57,19 +57,19 @@ class Thread(QThread):
                             print("right")
                         else :
                             print("left")'''
-                
-                results = gaze_pipeline.step(img)
-                img, eye_x, eye_y, h_, w_ = render(img, results)
-
-                eye_x -= w_/2
-                eye_y -= h_/2
-
-                e_x = width - (width/2 + eye_x * width / w_*4)
-                e_y = eye_y * height / h_*4
-
-                print(e_x)
-
                 if not hands_cursor :
+                
+                    results = gaze_pipeline.step(img)
+                    img, eye_x, eye_y, h_, w_ = render(img, results)
+
+                    eye_x -= w_/2
+                    eye_y -= h_/2
+
+                    e_x = width - (width/2 + eye_x * width / w_*4)
+                    e_y = eye_y * height / h_*4
+
+                    print(e_x)
+
                     if 0 < e_x < width and 0 < e_y < height :
                         HD.pag.moveTo(e_x, e_y)
 
@@ -400,6 +400,13 @@ class EyeSettings(QWidget):
         main_window.show()
         main_window.move(self.geometry().x() - 1, self.geometry().y() - 45)
         self.hide()
+
+    def detect_eyes(self):
+        global hands_cursor
+        if hands_cursor : 
+            hands_cursor = False
+        else : 
+            hands_cursor = True
     
     def initUI(self):
         self.setWindowTitle(self.title)
@@ -424,6 +431,18 @@ class EyeSettings(QWidget):
         B_back.move(15, 15)
         B_back.setStyleSheet('QPushButton {background-color: #d6d6d6; color: black;}')
         B_back.clicked.connect(self.back_to_main_window)
+        
+        B_EyeDetection = QPushButton('', self)
+        #B_EyeDetection = QPushButton('Show|Hide'+ os.linesep + 'Camera', self)
+        B_EyeDetection.setToolTip('Назад')
+        B_EyeDetection_w = int(self.width/12)
+        B_EyeDetection_h = int(self.width/12)
+        B_EyeDetection.resize(B_EyeDetection_w, B_EyeDetection_h)
+        B_EyeDetection.setIcon(QIcon('Настройки глаз.png'))
+        B_EyeDetection.setIconSize(QSize(B_EyeDetection_w - 16, B_EyeDetection_h - 16))
+        B_EyeDetection.move(int(self.width/2), int(self.width/16))
+        B_EyeDetection.setStyleSheet('QPushButton {background-color: #d6d6d6; color: black;}')
+        B_EyeDetection.clicked.connect(self.detect_eyes)
         
 class App(QWidget):
     def __init__(self):
